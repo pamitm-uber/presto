@@ -52,16 +52,20 @@ import static com.google.common.base.Throwables.throwIfUnchecked;
 public class MapToJsonCast
         extends SqlOperator
 {
-    public static final MapToJsonCast MAP_TO_JSON = new MapToJsonCast();
+    public static final MapToJsonCast MAP_TO_JSON = new MapToJsonCast(false);
+    public static final MapToJsonCast LEGACY_MAP_TO_JSON = new MapToJsonCast(true);
     private static final MethodHandle METHOD_HANDLE = methodHandle(MapToJsonCast.class, "toJson", ObjectKeyProvider.class, JsonGeneratorWriter.class, SqlFunctionProperties.class, Block.class);
 
-    private MapToJsonCast()
+    private final boolean legacyRowToJson;
+
+    private MapToJsonCast(boolean legacyRowToJson)
     {
         super(OperatorType.CAST,
                 ImmutableList.of(typeVariable("K"), typeVariable("V")),
                 ImmutableList.of(),
                 parseTypeSignature(StandardTypes.JSON),
                 ImmutableList.of(parseTypeSignature("map(K,V)")));
+        this.legacyRowToJson = legacyRowToJson;
     }
 
     @Override
@@ -76,7 +80,7 @@ public class MapToJsonCast
         checkCondition(canCastToJson(mapType), INVALID_CAST_ARGUMENT, "Cannot cast %s to JSON", mapType);
 
         ObjectKeyProvider provider = ObjectKeyProvider.createObjectKeyProvider(keyType);
-        JsonGeneratorWriter writer = JsonGeneratorWriter.createJsonGeneratorWriter(valueType);
+        JsonGeneratorWriter writer = JsonGeneratorWriter.createJsonGeneratorWriter(valueType, legacyRowToJson);
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(provider).bindTo(writer);
 
         return new BuiltInScalarFunctionImplementation(

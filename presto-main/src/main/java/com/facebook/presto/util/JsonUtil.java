@@ -27,6 +27,7 @@ import com.facebook.presto.common.type.RowType.Field;
 import com.facebook.presto.common.type.StandardTypes;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.TypeSignature;
+import com.facebook.presto.common.type.TypeSignatureParameter;
 import com.facebook.presto.common.type.UnknownType;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.type.BigintOperators;
@@ -284,11 +285,11 @@ public final class JsonUtil
         void writeJsonValue(JsonGenerator jsonGenerator, Block block, int position, SqlFunctionProperties properties)
                 throws IOException;
 
-        static JsonGeneratorWriter createJsonGeneratorWriter(Type type)
+        static JsonGeneratorWriter createJsonGeneratorWriter(Type type, boolean legacyRowToJson)
         {
             TypeSignature signature = type.getTypeSignature();
             if (signature.isDistinctType()) {
-                return createJsonGeneratorWriter(((DistinctType) type).getBaseType());
+                return createJsonGeneratorWriter(((DistinctType) type).getBaseType(), legacyRowToJson);
             }
             if (signature.isBigintEnum()) {
                 return new LongJsonGeneratorWriter(type);
@@ -330,20 +331,20 @@ public final class JsonUtil
                     ArrayType arrayType = (ArrayType) type;
                     return new ArrayJsonGeneratorWriter(
                             arrayType,
-                            createJsonGeneratorWriter(arrayType.getElementType()));
+                            createJsonGeneratorWriter(arrayType.getElementType(), legacyRowToJson));
                 case StandardTypes.MAP:
                     MapType mapType = (MapType) type;
                     return new MapJsonGeneratorWriter(
                             mapType,
                             createObjectKeyProvider(mapType.getKeyType()),
-                            createJsonGeneratorWriter(mapType.getValueType()));
+                            createJsonGeneratorWriter(mapType.getValueType(), legacyRowToJson));
                 case StandardTypes.ROW:
                     List<Type> fieldTypes = type.getTypeParameters();
                     List<JsonGeneratorWriter> fieldWriters = new ArrayList<>(fieldTypes.size());
                     for (int i = 0; i < fieldTypes.size(); i++) {
-                        fieldWriters.add(createJsonGeneratorWriter(fieldTypes.get(i)));
+                        fieldWriters.add(createJsonGeneratorWriter(fieldTypes.get(i), legacyRowToJson));
                     }
-                    return new RowJsonGeneratorWriter((RowType) type, fieldWriters);
+                    return new RowJsonGeneratorWriter((RowType) type, fieldWriters, legacyRowToJson);
                 default:
                     throw new PrestoException(INVALID_FUNCTION_ARGUMENT, format("Unsupported type: %s", type));
             }
@@ -635,11 +636,13 @@ public final class JsonUtil
     {
         private final RowType type;
         private final List<JsonGeneratorWriter> fieldWriters;
+        private final boolean legacyRowToJson;
 
-        public RowJsonGeneratorWriter(RowType type, List<JsonGeneratorWriter> fieldWriters)
+        public RowJsonGeneratorWriter(RowType type, List<JsonGeneratorWriter> fieldWriters, boolean legacyRowToJson)
         {
             this.type = type;
             this.fieldWriters = fieldWriters;
+            this.legacyRowToJson = legacyRowToJson;
         }
 
         @Override
@@ -651,11 +654,22 @@ public final class JsonUtil
             }
             else {
                 Block rowBlock = type.getObject(block, position);
-                jsonGenerator.writeStartArray();
-                for (int i = 0; i < rowBlock.getPositionCount(); i++) {
-                    fieldWriters.get(i).writeJsonValue(jsonGenerator, rowBlock, i, properties);
+                if (legacyRowToJson) {
+                    jsonGenerator.writeStartArray();
+                    for (int i = 0; i < rowBlock.getPositionCount(); i++) {
+                        fieldWriters.get(i).writeJsonValue(jsonGenerator, rowBlock, i, properties);
+                    }
+                    jsonGenerator.writeEndArray();
                 }
-                jsonGenerator.writeEndArray();
+                else {
+                    List<TypeSignatureParameter> typeSignatureParameters = type.getTypeSignature().getParameters();
+                    jsonGenerator.writeStartObject();
+                    for (int i = 0; i < rowBlock.getPositionCount(); i++) {
+                        jsonGenerator.writeFieldName(typeSignatureParameters.get(i).getNamedTypeSignature().getName().orElse(""));
+                        fieldWriters.get(i).writeJsonValue(jsonGenerator, rowBlock, i, properties);
+                    }
+                    jsonGenerator.writeEndObject();
+                }
             }
         }
     }

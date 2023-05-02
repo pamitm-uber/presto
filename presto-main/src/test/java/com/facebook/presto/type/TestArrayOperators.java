@@ -222,6 +222,7 @@ public class TestArrayOperators
                 "cast(ARRAY[ARRAY[1, 2], ARRAY[3, null], ARRAY[], ARRAY[null, null], null] AS JSON)",
                 JSON,
                 "[[1,2],[3,null],[],[null,null],null]");
+
         assertFunction(
                 "cast(ARRAY[MAP(ARRAY['b', 'a'], ARRAY[2, 1]), MAP(ARRAY['three', 'none'], ARRAY[3, null]), MAP(), MAP(ARRAY['h2', 'h1'], ARRAY[null, null]), null] AS JSON)",
                 JSON,
@@ -229,7 +230,8 @@ public class TestArrayOperators
         assertFunction(
                 "cast(ARRAY[ROW(1, 2), ROW(3, CAST(null as INTEGER)), CAST(ROW(null, null) AS ROW(INTEGER, INTEGER)), null] AS JSON)",
                 JSON,
-                "[[1,2],[3,null],[null,null],null]");
+
+                "[{\"\":1,\"\":2},{\"\":3,\"\":null},{\"\":null,\"\":null},null]");
         assertFunction("CAST(ARRAY [12345.12345, 12345.12345, 3.0] AS JSON)", JSON, "[12345.12345,12345.12345,3.00000]");
         assertFunction(
                 "CAST(ARRAY [123456789012345678901234567890.87654321, 123456789012345678901234567890.12345678] AS JSON)",

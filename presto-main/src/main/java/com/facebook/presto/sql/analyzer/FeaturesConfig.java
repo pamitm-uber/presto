@@ -264,6 +264,7 @@ public class FeaturesConfig
     private PushDownFilterThroughCrossJoinStrategy pushDownFilterExpressionEvaluationThroughCrossJoin = PushDownFilterThroughCrossJoinStrategy.REWRITTEN_TO_INNER_JOIN;
     private boolean rewriteCrossJoinWithOrFilterToInnerJoin = true;
     private JoinNotNullInferenceStrategy joinNotNullInferenceStrategy = NONE;
+    private boolean legacyRowToJsonCast;
 
     public enum PartitioningPrecisionStrategy
     {
@@ -532,6 +533,18 @@ public class FeaturesConfig
     public boolean isLegacyMapSubscript()
     {
         return legacyMapSubscript;
+    }
+
+    public boolean isLegacyRowToJsonCast()
+    {
+        return legacyRowToJsonCast;
+    }
+
+    @Config("deprecated.legacy-row-to-json-cast")
+    public FeaturesConfig setLegacyRowToJsonCast(boolean legacyRowToJsonCast)
+    {
+        this.legacyRowToJsonCast = legacyRowToJsonCast;
+        return this;
     }
 
     @Config("reduce-agg-for-complex-types-enabled")

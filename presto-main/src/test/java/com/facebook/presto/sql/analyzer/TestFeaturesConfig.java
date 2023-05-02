@@ -231,7 +231,8 @@ public class TestFeaturesConfig
                 .setSimplifyPlanWithEmptyInput(true)
                 .setPushDownFilterExpressionEvaluationThroughCrossJoin(PushDownFilterThroughCrossJoinStrategy.REWRITTEN_TO_INNER_JOIN)
                 .setDefaultJoinSelectivityCoefficient(0)
-                .setRewriteCrossJoinWithOrFilterToInnerJoin(true));
+                .setRewriteCrossJoinWithOrFilterToInnerJoin(true)
+                .setLegacyRowToJsonCast(false));
     }
 
     @Test
@@ -411,6 +412,7 @@ public class TestFeaturesConfig
                 .put("optimizer.push-down-filter-expression-evaluation-through-cross-join", "DISABLED")
                 .put("optimizer.rewrite-cross-join-with-or-filter-to-inner-join", "false")
                 .put("optimizer.default-join-selectivity-coefficient", "0.5")
+                .put("deprecated.legacy-row-to-json-cast", "true")
                 .build();
 
         FeaturesConfig expected = new FeaturesConfig()
@@ -587,7 +589,8 @@ public class TestFeaturesConfig
                 .setSimplifyPlanWithEmptyInput(false)
                 .setDefaultJoinSelectivityCoefficient(0.5)
                 .setPushDownFilterExpressionEvaluationThroughCrossJoin(PushDownFilterThroughCrossJoinStrategy.DISABLED)
-                .setRewriteCrossJoinWithOrFilterToInnerJoin(false);
+                .setRewriteCrossJoinWithOrFilterToInnerJoin(false)
+                .setLegacyRowToJsonCast(true);
         assertFullMapping(properties, expected);
     }
 

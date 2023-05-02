@@ -352,6 +352,7 @@ import static com.facebook.presto.operator.scalar.ArraySubscriptOperator.ARRAY_S
 import static com.facebook.presto.operator.scalar.ArrayToArrayCast.ARRAY_TO_ARRAY_CAST;
 import static com.facebook.presto.operator.scalar.ArrayToElementConcatFunction.ARRAY_TO_ELEMENT_CONCAT_FUNCTION;
 import static com.facebook.presto.operator.scalar.ArrayToJsonCast.ARRAY_TO_JSON;
+import static com.facebook.presto.operator.scalar.ArrayToJsonCast.LEGACY_ARRAY_TO_JSON;
 import static com.facebook.presto.operator.scalar.ArrayTransformFunction.ARRAY_TRANSFORM_FUNCTION;
 import static com.facebook.presto.operator.scalar.CastFromUnknownOperator.CAST_FROM_UNKNOWN;
 import static com.facebook.presto.operator.scalar.ConcatFunction.VARBINARY_CONCAT;
@@ -371,6 +372,7 @@ import static com.facebook.presto.operator.scalar.MapConcatFunction.MAP_CONCAT_F
 import static com.facebook.presto.operator.scalar.MapConstructor.MAP_CONSTRUCTOR;
 import static com.facebook.presto.operator.scalar.MapElementAtFunction.MAP_ELEMENT_AT;
 import static com.facebook.presto.operator.scalar.MapHashCodeOperator.MAP_HASH_CODE;
+import static com.facebook.presto.operator.scalar.MapToJsonCast.LEGACY_MAP_TO_JSON;
 import static com.facebook.presto.operator.scalar.MapToJsonCast.MAP_TO_JSON;
 import static com.facebook.presto.operator.scalar.MapToMapCast.MAP_TO_MAP_CAST;
 import static com.facebook.presto.operator.scalar.MapTransformKeyFunction.MAP_TRANSFORM_KEY_FUNCTION;
@@ -388,6 +390,7 @@ import static com.facebook.presto.operator.scalar.RowIndeterminateOperator.ROW_I
 import static com.facebook.presto.operator.scalar.RowLessThanOperator.ROW_LESS_THAN;
 import static com.facebook.presto.operator.scalar.RowLessThanOrEqualOperator.ROW_LESS_THAN_OR_EQUAL;
 import static com.facebook.presto.operator.scalar.RowNotEqualOperator.ROW_NOT_EQUAL;
+import static com.facebook.presto.operator.scalar.RowToJsonCast.LEGACY_ROW_TO_JSON;
 import static com.facebook.presto.operator.scalar.RowToJsonCast.ROW_TO_JSON;
 import static com.facebook.presto.operator.scalar.RowToRowCast.ROW_TO_ROW_CAST;
 import static com.facebook.presto.operator.scalar.ScalarFunctionImplementationChoice.ArgumentProperty.valueTypeArgumentProperty;
@@ -842,12 +845,12 @@ public class BuiltInTypeAndFunctionNamespaceManager
                 .function(MAP_TO_MAP_CAST)
                 .function(ARRAY_FLATTEN_FUNCTION)
                 .function(ARRAY_CONCAT_FUNCTION)
-                .functions(ARRAY_CONSTRUCTOR, ARRAY_SUBSCRIPT, ARRAY_TO_JSON, JSON_TO_ARRAY, JSON_STRING_TO_ARRAY)
+                .functions(ARRAY_CONSTRUCTOR, ARRAY_SUBSCRIPT, JSON_TO_ARRAY, JSON_STRING_TO_ARRAY)
                 .function(SET_AGG)
                 .function(SET_UNION)
                 .function(new ArrayAggregationFunction(featuresConfig.isLegacyArrayAgg(), featuresConfig.getArrayAggGroupImplementation()))
                 .functions(new MapSubscriptOperator(featuresConfig.isLegacyMapSubscript()))
-                .functions(MAP_CONSTRUCTOR, MAP_TO_JSON, JSON_TO_MAP, JSON_STRING_TO_MAP)
+                .functions(MAP_CONSTRUCTOR, JSON_TO_MAP, JSON_STRING_TO_MAP)
                 .functions(MAP_AGG, MAP_UNION, MAP_UNION_SUM)
                 .function(new ReduceAggregationFunction(featuresConfig.isReduceAggForComplexTypesEnabled()))
                 .function(new MultimapAggregationFunction(featuresConfig.getMultimapAggGroupImplementation()))
@@ -873,7 +876,7 @@ public class BuiltInTypeAndFunctionNamespaceManager
                 .functions(MAX_BY, MIN_BY, MAX_BY_N_AGGREGATION, MIN_BY_N_AGGREGATION)
                 .functions(MAX_AGGREGATION, MIN_AGGREGATION, MAX_N_AGGREGATION, MIN_N_AGGREGATION)
                 .function(COUNT_COLUMN)
-                .functions(ROW_HASH_CODE, ROW_TO_JSON, JSON_TO_ROW, JSON_STRING_TO_ROW, ROW_DISTINCT_FROM, ROW_EQUAL, ROW_GREATER_THAN, ROW_GREATER_THAN_OR_EQUAL, ROW_LESS_THAN, ROW_LESS_THAN_OR_EQUAL, ROW_NOT_EQUAL, ROW_TO_ROW_CAST, ROW_INDETERMINATE)
+                .functions(ROW_HASH_CODE, JSON_TO_ROW, JSON_STRING_TO_ROW, ROW_DISTINCT_FROM, ROW_EQUAL, ROW_GREATER_THAN, ROW_GREATER_THAN_OR_EQUAL, ROW_LESS_THAN, ROW_LESS_THAN_OR_EQUAL, ROW_NOT_EQUAL, ROW_TO_ROW_CAST, ROW_INDETERMINATE)
                 .functions(VARCHAR_CONCAT, VARBINARY_CONCAT)
                 .function(DECIMAL_TO_DECIMAL_CAST)
                 .function(castVarcharToRe2JRegexp(featuresConfig.getRe2JDfaStatesLimit(), featuresConfig.getRe2JDfaRetries()))
@@ -931,6 +934,13 @@ public class BuiltInTypeAndFunctionNamespaceManager
 
         if (featuresConfig.isLegacyLogFunction()) {
             builder.scalar(LegacyLogFunction.class);
+        }
+
+        if (featuresConfig.isLegacyRowToJsonCast()) {
+            builder.functions(LEGACY_ROW_TO_JSON, LEGACY_ARRAY_TO_JSON, LEGACY_MAP_TO_JSON);
+        }
+        else {
+            builder.functions(ROW_TO_JSON, ARRAY_TO_JSON, MAP_TO_JSON);
         }
 
         // Replace some aggregations for Velox to override intermediate aggregation type.

@@ -48,16 +48,19 @@ import static com.google.common.base.Throwables.throwIfUnchecked;
 public class ArrayToJsonCast
         extends SqlOperator
 {
-    public static final ArrayToJsonCast ARRAY_TO_JSON = new ArrayToJsonCast();
+    public static final ArrayToJsonCast ARRAY_TO_JSON = new ArrayToJsonCast(false);
+    public static final ArrayToJsonCast LEGACY_ARRAY_TO_JSON = new ArrayToJsonCast(true);
     private static final MethodHandle METHOD_HANDLE = methodHandle(ArrayToJsonCast.class, "toJson", JsonGeneratorWriter.class, SqlFunctionProperties.class, Block.class);
 
-    private ArrayToJsonCast()
+    private final boolean legacyRowToJson;
+    private ArrayToJsonCast(boolean legacyRowToJson)
     {
         super(OperatorType.CAST,
                 ImmutableList.of(typeVariable("T")),
                 ImmutableList.of(),
                 parseTypeSignature(StandardTypes.JSON),
                 ImmutableList.of(parseTypeSignature("array(T)")));
+        this.legacyRowToJson = legacyRowToJson;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class ArrayToJsonCast
         Type arrayType = functionAndTypeManager.getParameterizedType(StandardTypes.ARRAY, ImmutableList.of(TypeSignatureParameter.of(type.getTypeSignature())));
         checkCondition(canCastToJson(arrayType), INVALID_CAST_ARGUMENT, "Cannot cast %s to JSON", arrayType);
 
-        JsonGeneratorWriter writer = JsonGeneratorWriter.createJsonGeneratorWriter(type);
+        JsonGeneratorWriter writer = JsonGeneratorWriter.createJsonGeneratorWriter(type, legacyRowToJson);
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(writer);
         return new BuiltInScalarFunctionImplementation(
                 false,
